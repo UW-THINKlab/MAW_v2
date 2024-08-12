@@ -2,7 +2,6 @@
 import datetime
 import logging
 
-import multiprocessing
 
 import pandas as pd
 
@@ -34,17 +33,53 @@ def ic_usd(
     duration_constraint1: float,
     duration_constraint2: float,
 ) -> pd.DataFrame:
+    """
+    Perform incremental clustering and update stay duration on user traces data.
+
+    This script processes trace data by applying two main steps:
+    1. **Incremental Clustering**: Groups locations based on a spatial threshold to detect potential stays.
+    2. **Update Stay Duration**: Recalculates the duration of the detected stays.
+
+    The processed data is then saved to a specified output file.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the input CSV file containing the trace data.
+    output_file : str
+        Path to the output CSV file where the processed data will be saved.
+    spatial_constraint : float
+        The spatial threshold used for clustering locations to detect stays. Default is 1.0.
+    duration_constraint1 : float
+        The minimum duration required for the first stay detection step. **This should be passed as 0 only**
+        Should be set to 0 if using Incremental Clustering as the first step in the workflow. Default is 0.
+    duration_constraint2 : float
+        The minimum duration constraint for updating stay duration. Default is 300.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the processed data with updated stay durations.
+
+    Notes
+    -----
+    The script can be executed from the command line with the required arguments.
+
+    """
     df_output_ic = incremental_clustering(output_file, spatial_constraint, duration_constraint1, input_file=input_file)
     df_output_final = update_stay_duration(output_file, duration_constraint2, input_df=df_output_ic)
     return df_output_final
 
 
-if __name__ == "__main__":
+def main():
     args = parser.parse_args()
-    multiprocessing.freeze_support() # TODO: do we require this? most probably NOT.
     st = datetime.datetime.now()
     ic_usd(args.input_file, IC_USD_WIP_FILE_NAME, args.spatial_constraint,
            args.duration_constraint_1, args.duration_constraint_2)
     en = datetime.datetime.now()
     logger.info(f"Total Time taken for execution: {en - st}")
     os.rename(IC_USD_WIP_FILE_NAME, args.output_file)
+
+
+if __name__ == "__main__":
+    main()

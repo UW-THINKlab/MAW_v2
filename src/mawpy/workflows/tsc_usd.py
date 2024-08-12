@@ -2,7 +2,6 @@
 import datetime
 import logging
 
-import multiprocessing
 
 import pandas as pd
 
@@ -14,6 +13,7 @@ from mawpy.steps import (
 import os
 
 import argparse
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input_file", help="the CSV file to read the input from")
@@ -32,18 +32,49 @@ def tsc_usd(
     duration_constraint1: float,
     duration_constraint2: float,
 ) -> pd.DataFrame:
+    """
+    Perform trace segmentation clustering and update stay duration on user data.
+
+    This script processes trace data using the following steps:
+    1. **Trace Segmentation Clustering**: Segments traces and clusters them based on a spatial constraint and duration threshold.
+    2. **Update Stay Duration**: Recalculates the duration of detected stays.
+
+    The processed data is saved to a specified output file.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the input CSV file containing the trace data.
+    output_file : str
+        Path to the output CSV file where the processed data will be saved.
+    spatial_constraint : float
+        The spatial threshold used for trace segmentation clustering. Default is 1.0.
+    duration_constraint_1 : float
+        The duration threshold used for trace segmentation clustering. Default is 0.
+    duration_constraint_2 : float
+        The minimum duration constraint for the final stay duration update. Default is 300.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing the processed traces data with updated stay durations.
+
+    """
     df_output_tsc = trace_segmentation_clustering(output_file, spatial_constraint, duration_constraint1,
                                               input_file=input_file)
     df_output_final = update_stay_duration(output_file, duration_constraint2, input_df=df_output_tsc)
     return df_output_final
 
 
-if __name__ == "__main__":
+def main():
     args = parser.parse_args()
-    multiprocessing.freeze_support() # TODO: do we require this? most probably NOT.
     st = datetime.datetime.now()
     tsc_usd(args.input_file, TSC_USD_WIP_FILE_NAME, args.spatial_constraint,
               args.duration_constraint_1, args.duration_constraint_2)
     en = datetime.datetime.now()
     logger.info(f"Total Time taken for execution: {en - st}")
     os.rename(TSC_USD_WIP_FILE_NAME, args.output_file)
+
+
+if __name__ == "__main__":
+    main()
